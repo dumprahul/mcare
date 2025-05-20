@@ -89,7 +89,7 @@ export default function ProfileForm({ userId }: { userId: string }) {
     <form onSubmit={handleSubmit} className="mt-8 space-y-6">
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Job Title</label>
+          <label className="block text-sm font-medium text-gray-700">Problem Title</label>
           <input
             type="text"
             value={formData.jobTitle}
@@ -100,7 +100,7 @@ export default function ProfileForm({ userId }: { userId: string }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Job Description</label>
+          <label className="block text-sm font-medium text-gray-700">Problem Description</label>
           <textarea
             value={formData.jobDescription}
             onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
@@ -126,7 +126,7 @@ export default function ProfileForm({ userId }: { userId: string }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Address</label>
+          <label className="block text-sm font-medium text-gray-700">More Information</label>
           <textarea
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
