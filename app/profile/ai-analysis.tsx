@@ -44,53 +44,11 @@ export default function AIAnalysis({ profileHistory, visits, deviceVitals }: AIA
   const [analysis, setAnalysis] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailSent, setEmailSent] = useState(false);
-
-  const sendEmail = async (content: string) => {
-    try {
-      console.log('Attempting to send email to:', session?.user?.email);
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to: session?.user?.email,
-          subject: 'Your Patient Data Analysis - Marutham Care',
-          content: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #2563eb;">Patient Data Analysis</h2>
-              <p>Dear ${session?.user?.name},</p>
-              <p>Here is your patient data analysis as requested:</p>
-              <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                ${content.split('\n').map(line => `<p>${line}</p>`).join('')}
-              </div>
-              <p>Best regards,<br>Marutham Care Team</p>
-            </div>
-          `,
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        console.error('Email send error response:', data);
-        throw new Error(data.details || 'Failed to send email');
-      }
-
-      console.log('Email sent successfully:', data);
-      setEmailSent(true);
-    } catch (error: any) {
-      console.error('Error sending email:', error);
-      setError(`Failed to send email: ${error.message}`);
-    }
-  };
 
   const analyzeProfileHistory = async () => {
     try {
       setLoading(true);
       setError(null);
-      setEmailSent(false);
 
       if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
         throw new Error('Gemini API key is not configured');
@@ -141,19 +99,11 @@ export default function AIAnalysis({ profileHistory, visits, deviceVitals }: AIA
         const response = await result.response;
         const text = response.text();
         setAnalysis(text);
-        await sendEmail(text);
       } catch (apiError: any) {
         throw new Error(`Gemini API Error: ${apiError.message}`);
       }
     } catch (error: any) {
-      console.error('Detailed error in AI analysis:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-      
       let errorMessage = 'Failed to analyze patient data. ';
-      
       if (error.message.includes('API key')) {
         errorMessage += 'API key is not configured correctly.';
       } else if (error.message.includes('quota')) {
@@ -165,7 +115,6 @@ export default function AIAnalysis({ profileHistory, visits, deviceVitals }: AIA
       } else {
         errorMessage += error.message || 'Please try again later.';
       }
-      
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -176,7 +125,6 @@ export default function AIAnalysis({ profileHistory, visits, deviceVitals }: AIA
     <div className="bg-white rounded-xl shadow-md overflow-hidden">
       <div className="p-8">
         <h3 className="text-xl font-semibold text-black mb-4">AI Analysis</h3>
-        
         {error && (
           <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-lg">
             <p className="font-medium">Error:</p>
@@ -197,7 +145,6 @@ export default function AIAnalysis({ profileHistory, visits, deviceVitals }: AIA
             </div>
           </div>
         )}
-
         {!analysis && !loading && (
           <button
             onClick={analyzeProfileHistory}
@@ -206,14 +153,12 @@ export default function AIAnalysis({ profileHistory, visits, deviceVitals }: AIA
             Analyze Patient Data
           </button>
         )}
-
         {loading && (
           <div className="flex justify-center items-center py-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <span className="ml-2 text-gray-600">Analyzing patient data...</span>
           </div>
         )}
-
         {analysis && (
           <div className="mt-4">
             <div className="prose max-w-none">
@@ -221,11 +166,6 @@ export default function AIAnalysis({ profileHistory, visits, deviceVitals }: AIA
                 {analysis}
               </pre>
             </div>
-            {emailSent && (
-              <div className="mt-4 p-4 bg-green-50 text-green-600 rounded-lg">
-                <p>Analysis has been sent to your email: {session?.user?.email}</p>
-              </div>
-            )}
             <button
               onClick={() => setAnalysis('')}
               className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
