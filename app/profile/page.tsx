@@ -8,6 +8,7 @@ import AIAnalysis from "./ai-analysis";
 import { supabase } from "@/lib/supabase";
 import { RainbowButton } from '@/components/magicui/rainbow-button';
 import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text';
+import { WarpBackground } from '@/components/magicui/warp-background';
 
 interface ProfileData {
   job_title: string;
@@ -227,7 +228,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f8fa] py-8 px-2 md:px-6 lg:px-12">
+    <WarpBackground className="min-h-screen py-8 px-2 md:px-6 lg:px-12">
       {/* Main dashboard grid */}
       <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
         {/* Left: Profile Card */}
@@ -463,6 +464,6 @@ export default function Profile() {
       <div className="max-w-[1400px] mx-auto mt-10">
         {profileHistory.length > 0 && <AIAnalysis profileHistory={profileHistory} />}
       </div>
-    </div>
+    </WarpBackground>
   );
 } 
