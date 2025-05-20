@@ -12,11 +12,34 @@ interface ProfileData {
   updated_at: string;
 }
 
-interface AIAnalysisProps {
-  profileHistory: ProfileData[];
+interface VisitData {
+  id: string;
+  visit_time: string;
+  visit_data: {
+    browser: string;
+    device: string;
+    location: string;
+  };
 }
 
-export default function AIAnalysis({ profileHistory }: AIAnalysisProps) {
+interface DeviceVital {
+  id: number;
+  patient_id: string;
+  name: string;
+  heart_rate: number;
+  spo2: number;
+  touch: boolean;
+  timestamp: number;
+  condition: string;
+}
+
+interface AIAnalysisProps {
+  profileHistory: ProfileData[];
+  visits: VisitData[];
+  deviceVitals: DeviceVital[];
+}
+
+export default function AIAnalysis({ profileHistory, visits, deviceVitals }: AIAnalysisProps) {
   const { data: session } = useSession();
   const [analysis, setAnalysis] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -33,12 +56,12 @@ export default function AIAnalysis({ profileHistory }: AIAnalysisProps) {
         },
         body: JSON.stringify({
           to: session?.user?.email,
-          subject: 'Your Job History Analysis - Marutham Care',
+          subject: 'Your Patient Data Analysis - Marutham Care',
           content: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #2563eb;">Job History Analysis</h2>
+              <h2 style="color: #2563eb;">Patient Data Analysis</h2>
               <p>Dear ${session?.user?.name},</p>
-              <p>Here is your job history analysis as requested:</p>
+              <p>Here is your patient data analysis as requested:</p>
               <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 ${content.split('\n').map(line => `<p>${line}</p>`).join('')}
               </div>
@@ -69,14 +92,11 @@ export default function AIAnalysis({ profileHistory }: AIAnalysisProps) {
       setError(null);
       setEmailSent(false);
 
-      // Check if API key is available
       if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
         throw new Error('Gemini API key is not configured');
       }
 
-      console.log('Starting AI analysis with profile history:', profileHistory);
-
-      // Initialize the Gemini API with the correct model
+      // Initialize Gemini API
       const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.0-flash",
@@ -88,7 +108,7 @@ export default function AIAnalysis({ profileHistory }: AIAnalysisProps) {
         }
       });
 
-      // Format the profile history data for analysis
+      // Format the data for analysis
       const profileSummary = profileHistory.map(profile => ({
         date: new Date(profile.updated_at).toLocaleString(),
         job_title: profile.job_title,
@@ -96,43 +116,33 @@ export default function AIAnalysis({ profileHistory }: AIAnalysisProps) {
         gender: profile.gender,
         address: profile.address
       }));
+      const visitSummary = visits.map(visit => ({
+        date: new Date(visit.visit_time).toLocaleString(),
+        device: visit.visit_data.device,
+        browser: visit.visit_data.browser,
+        location: visit.visit_data.location
+      }));
+      const deviceSummary = deviceVitals.map(vital => ({
+        patient_id: vital.patient_id,
+        name: vital.name,
+        heart_rate: vital.heart_rate,
+        spo2: vital.spo2,
+        touch: vital.touch,
+        timestamp: new Date(vital.timestamp * 1000).toLocaleString(),
+        condition: vital.condition
+      }));
 
-      console.log('Formatted profile summary:', profileSummary);
+      // Create a prompt for the AI (hospital/patient context)
+      const prompt = `Analyze the following patient data from a hospital user management system and provide insights.\n\nPatient Profile History:\n${JSON.stringify(profileSummary, null, 2)}\n\nVisit History:\n${JSON.stringify(visitSummary, null, 2)}\n\nDevice Vitals:\n${JSON.stringify(deviceSummary, null, 2)}\n\nPlease provide:\n1. Health/vital sign trends and anomalies\n2. Visit patterns and suggestions for follow-up\n3. Device data insights (e.g., abnormal readings)\n4. Risk factors or alerts\n5. Suggestions for care or monitoring\n\nFormat the response in a clear, concise manner with bullet points.`;
 
-      // Create a prompt for the AI
-      const prompt = `Analyze the following job history data and provide insights:
-      
-      Profile History:
-      ${JSON.stringify(profileSummary, null, 2)}
-      
-      Please provide:
-      1. Job title and description patterns
-      2. Changes in job roles over time
-      3. Key skills and responsibilities mentioned
-      4. Career progression insights
-      5. Suggestions for professional development
-      
-      Format the response in a clear, concise manner with bullet points.`;
-
-      console.log('Sending prompt to Gemini API');
-
+      // Generate content
       try {
-        // Generate content
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
-        
-        console.log('Received response from Gemini API:', text);
         setAnalysis(text);
-        
-        // Send the analysis via email
         await sendEmail(text);
       } catch (apiError: any) {
-        console.error('Gemini API Error:', {
-          message: apiError.message,
-          status: apiError.status,
-          details: apiError.details
-        });
         throw new Error(`Gemini API Error: ${apiError.message}`);
       }
     } catch (error: any) {
@@ -142,7 +152,7 @@ export default function AIAnalysis({ profileHistory }: AIAnalysisProps) {
         name: error.name
       });
       
-      let errorMessage = 'Failed to analyze profile history. ';
+      let errorMessage = 'Failed to analyze patient data. ';
       
       if (error.message.includes('API key')) {
         errorMessage += 'API key is not configured correctly.';
@@ -193,14 +203,14 @@ export default function AIAnalysis({ profileHistory }: AIAnalysisProps) {
             onClick={analyzeProfileHistory}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            Analyze Job History
+            Analyze Patient Data
           </button>
         )}
 
         {loading && (
           <div className="flex justify-center items-center py-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-gray-600">Analyzing job history...</span>
+            <span className="ml-2 text-gray-600">Analyzing patient data...</span>
           </div>
         )}
 

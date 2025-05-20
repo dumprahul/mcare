@@ -462,7 +462,9 @@ export default function Profile() {
       </div>
       {/* AI Analysis below dashboard */}
       <div className="max-w-[1400px] mx-auto mt-10">
-        {profileHistory.length > 0 && <AIAnalysis profileHistory={profileHistory} />}
+        {profileHistory.length > 0 && (
+          <AIAnalysis profileHistory={profileHistory} visits={visits} deviceVitals={deviceVitals} />
+        )}
       </div>
     </WarpBackground>
   );
