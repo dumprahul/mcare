@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import ProfileForm from "./form";
 import AIAnalysis from "./ai-analysis";
 import { supabase } from "@/lib/supabase";
@@ -27,6 +27,54 @@ interface VisitData {
   };
 }
 
+interface DeviceVital {
+  id: number;
+  patient_id: string;
+  name: string;
+  heart_rate: number;
+  spo2: number;
+  touch: boolean;
+  timestamp: number;
+  condition: string;
+}
+
+// Modal component for showing all device data
+function DeviceDataModal({ open, onClose, deviceVitals }: { open: boolean, onClose: () => void, deviceVitals: DeviceVital[] }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold"
+          aria-label="Close"
+        >
+          &times;
+        </button>
+        <h2 className="text-2xl font-bold mb-4 text-center">All Device Datas</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {deviceVitals.map((vital: DeviceVital) => (
+            <div key={vital.id} className="flex flex-col items-start border rounded-xl p-4 bg-gray-50">
+              <span className="text-sm text-gray-600">{vital.name} ({vital.patient_id})</span>
+              <span className="text-lg font-semibold text-gray-800 mt-1">
+                HR: {vital.heart_rate} bpm, SpO₂: {vital.spo2}%
+              </span>
+              <span className={`text-xs mt-1 ${vital.condition === 'normal' ? 'text-green-600' : 'text-red-600'}`}>
+                {vital.condition
+                  ? vital.condition.charAt(0).toUpperCase() + vital.condition.slice(1)
+                  : 'Unknown'}
+              </span>
+              <span className="text-xs text-gray-400">
+                {new Date(vital.timestamp * 1000).toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Profile() {
   // All hooks at the top
   const { data: session, status } = useSession();
@@ -40,6 +88,12 @@ export default function Profile() {
   const [showAllVisitHistory, setShowAllVisitHistory] = useState(false);
   const PROFILE_HISTORY_PREVIEW = 2;
   const VISIT_HISTORY_PREVIEW = 2;
+
+  // Device Vitals State
+  const [deviceVitals, setDeviceVitals] = useState<DeviceVital[]>([]);
+  const [deviceLoading, setDeviceLoading] = useState(true);
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+  const [showDeviceModal, setShowDeviceModal] = useState(false);
 
   // Dummy data for hospital context
   const dummyAppointments = [
@@ -127,6 +181,25 @@ export default function Profile() {
     fetchData();
   }, [session]);
 
+  // Fetch device vitals from API route
+  useEffect(() => {
+    async function fetchVitals() {
+      setDeviceLoading(true);
+      setDeviceError(null);
+      try {
+        const res = await fetch('/api/device-vitals');
+        if (!res.ok) throw new Error("Failed to fetch device vitals");
+        const data = await res.json();
+        setDeviceVitals(data);
+      } catch (err: any) {
+        setDeviceError(err.message || "Failed to fetch device vitals");
+      } finally {
+        setDeviceLoading(false);
+      }
+    }
+    fetchVitals();
+  }, []);
+
   const handleSignOut = async () => {
     try {
       await signOut({ redirect: false });
@@ -185,7 +258,6 @@ export default function Profile() {
         </div>
         {/* Center: Vitals Overview/Graph */}
         <div className="flex flex-col gap-8 h-full">
-          {/* Vitals Overview Box */}
           <div className="rounded-3xl bg-white shadow-xl p-8 flex flex-col min-h-[240px] h-full mb-0">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xl font-bold text-gray-800">Vitals Overview</span>
@@ -214,36 +286,52 @@ export default function Profile() {
             </div>
           </div>
           {/* Device Datas Box */}
-          <div className="rounded-3xl bg-white shadow-xl p-8 flex flex-col min-h-[240px] h-full">
+          <div className="rounded-3xl bg-white shadow-xl p-8 flex flex-col min-h-[240px] h-full mb-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xl font-bold text-gray-800">Device Datas</span>
+              {deviceVitals.length > 4 && (
+                <button
+                  onClick={() => setShowDeviceModal(true)}
+                  className="text-xs text-blue-500 hover:underline font-semibold"
+                >
+                  Show more
+                </button>
+              )}
             </div>
-            <div className="text-xs text-gray-400 mb-4">Connected medical device readings (dummy data)</div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="flex flex-col items-start">
-                <span className="text-sm text-gray-600">ECG Monitor</span>
-                <span className="text-lg font-semibold text-gray-800 mt-1">Normal</span>
-                <span className="text-xs text-gray-400">Last: 2 min ago</span>
+            <div className="text-xs text-gray-400 mb-4">Connected medical device readings (live data)</div>
+            {deviceLoading ? (
+              <div className="text-gray-500">Loading device data...</div>
+            ) : deviceError ? (
+              <div className="text-red-500">Error: {deviceError}</div>
+            ) : (
+              <div className="grid grid-cols-2 gap-6 mb-2">
+                {deviceVitals.slice(0, 4).map((vital) => (
+                  <div key={vital.id} className="flex flex-col items-start border rounded-xl p-4 bg-gray-50">
+                    <span className="text-sm text-gray-600">{vital.name} ({vital.patient_id})</span>
+                    <span className="text-lg font-semibold text-gray-800 mt-1">
+                      HR: {vital.heart_rate} bpm, SpO₂: {vital.spo2}%
+                    </span>
+                    <span className={`text-xs mt-1 ${vital.condition === 'normal' ? 'text-green-600' : 'text-red-600'}`}>
+                      {vital.condition
+                        ? vital.condition.charAt(0).toUpperCase() + vital.condition.slice(1)
+                        : 'Unknown'}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {new Date(vital.timestamp * 1000).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <div className="flex flex-col items-start">
-                <span className="text-sm text-gray-600">Pulse Oximeter</span>
-                <span className="text-lg font-semibold text-gray-800 mt-1">98%</span>
-                <span className="text-xs text-gray-400">Last: 1 min ago</span>
-              </div>
-              <div className="flex flex-col items-start">
-                <span className="text-sm text-gray-600">Blood Pressure Cuff</span>
-                <span className="text-lg font-semibold text-gray-800 mt-1">120/80 mmHg</span>
-                <span className="text-xs text-gray-400">Last: 3 min ago</span>
-              </div>
-              <div className="flex flex-col items-start">
-                <span className="text-sm text-gray-600">Thermometer</span>
-                <span className="text-lg font-semibold text-gray-800 mt-1">36.8°C</span>
-                <span className="text-xs text-gray-400">Last: 5 min ago</span>
-              </div>
-            </div>
+            )}
+            {/* Modal for all device data */}
+            <DeviceDataModal
+              open={showDeviceModal}
+              onClose={() => setShowDeviceModal(false)}
+              deviceVitals={deviceVitals}
+            />
           </div>
           {/* Stats Cards */}
-          <div className="flex gap-6 mt-2">
+          <div className="flex gap-6 mt-6">
             {dummyStats.map((stat, i) => (
               <div key={i} className={`flex-1 rounded-2xl p-6 bg-gradient-to-br ${stat.color} shadow-md flex flex-col items-start justify-between min-h-[120px]`}>
                 <div className="text-2xl mb-2">{stat.icon}</div>
