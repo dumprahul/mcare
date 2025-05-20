@@ -185,7 +185,8 @@ export default function Profile() {
         </div>
         {/* Center: Vitals Overview/Graph */}
         <div className="flex flex-col gap-8 h-full">
-          <div className="rounded-3xl bg-white shadow-xl p-8 flex flex-col min-h-[240px] h-full">
+          {/* Vitals Overview Box */}
+          <div className="rounded-3xl bg-white shadow-xl p-8 flex flex-col min-h-[240px] h-full mb-0">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xl font-bold text-gray-800">Vitals Overview</span>
               <div className="flex items-center gap-2">
@@ -197,7 +198,7 @@ export default function Profile() {
             </div>
             <div className="text-xs text-gray-400 mb-4">Patient vital signs analytics</div>
             {/* Dummy Graph */}
-            <div className="w-full h-32 flex items-end mb-4">
+            <div className="w-full h-32 flex items-end mb-2">
               <svg width="100%" height="100%" viewBox="0 0 400 80" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="0" y="0" width="400" height="80" rx="16" fill="#f7f8fa" />
                 <polyline points="0,60 40,40 80,70 120,20 160,40 200,10 240,50 280,30 320,60 360,40 400,70" fill="none" stroke="#f87171" strokeWidth="3" />
@@ -210,6 +211,35 @@ export default function Profile() {
                 <span className="flex items-center gap-1"><span className="w-3 h-1 rounded-full bg-blue-400 inline-block" /> Heart Rate</span>
               </div>
               <div className="text-2xl font-bold text-gray-700">41% <span className="text-xs font-normal">Avg. Stability</span></div>
+            </div>
+          </div>
+          {/* Device Datas Box */}
+          <div className="rounded-3xl bg-white shadow-xl p-8 flex flex-col min-h-[240px] h-full">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xl font-bold text-gray-800">Device Datas</span>
+            </div>
+            <div className="text-xs text-gray-400 mb-4">Connected medical device readings (dummy data)</div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="flex flex-col items-start">
+                <span className="text-sm text-gray-600">ECG Monitor</span>
+                <span className="text-lg font-semibold text-gray-800 mt-1">Normal</span>
+                <span className="text-xs text-gray-400">Last: 2 min ago</span>
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-sm text-gray-600">Pulse Oximeter</span>
+                <span className="text-lg font-semibold text-gray-800 mt-1">98%</span>
+                <span className="text-xs text-gray-400">Last: 1 min ago</span>
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-sm text-gray-600">Blood Pressure Cuff</span>
+                <span className="text-lg font-semibold text-gray-800 mt-1">120/80 mmHg</span>
+                <span className="text-xs text-gray-400">Last: 3 min ago</span>
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-sm text-gray-600">Thermometer</span>
+                <span className="text-lg font-semibold text-gray-800 mt-1">36.8°C</span>
+                <span className="text-xs text-gray-400">Last: 5 min ago</span>
+              </div>
             </div>
           </div>
           {/* Stats Cards */}
